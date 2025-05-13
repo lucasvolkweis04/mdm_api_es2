@@ -24,8 +24,8 @@ Subprocess para execução de scripts externos (DEM Service).
 
 🚀 Como Executar o Projeto:
 1. Clone o Repositório 
-git clone https://github.com/seu-usuario/volks-project.git
-cd volks-project
+git clone https://github.com/lucasvolkweis04/volks
+cd volks
 
 2. Instale as Dependências
 Crie um ambiente virtual e instale as dependências:
