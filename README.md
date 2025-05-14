@@ -24,7 +24,7 @@ Subprocess para execução de scripts externos (DEM Service).
 
 🚀 Como Executar o Projeto:
 1. Clone o Repositório 
-git clone https://github.com/lucasvolkweis04/volks
+git clone https://github.com/lucasvolkweis04/mdm_api_es2
 cd volks
 
 2. Instale as Dependências
