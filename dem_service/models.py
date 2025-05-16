@@ -1,27 +1,22 @@
-import enum
-from sqlalchemy import (
-    Column, Integer, String, Enum, Text,
-    TIMESTAMP, func
-)
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
+from dem_service.database import Base
+from datetime import datetime
 
-Base = declarative_base()
+class Provider(Base):
+    __tablename__ = "providers"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    url = Column(String, nullable=False)
 
-class ETLStatus(enum.Enum):
-    pending = "pending"
-    running = "running"
-    success = "success"
-    failure = "failure"
-
-class ETLTransaction(Base):
-    __tablename__ = "etl_transaction"
-    id         = Column(Integer, primary_key=True, index=True)
-    type       = Column(String, nullable=False)          # extract/transform/load
-    status     = Column(Enum(ETLStatus), default=ETLStatus.pending)
-    logs       = Column(Text)
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at = Column(
-        TIMESTAMP(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+class ETLMetadata(Base):
+    __tablename__ = "etl_metadata"
+    id = Column(Integer, primary_key=True, index=True)
+    provider_id = Column(Integer)
+    provider_name = Column(String)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    status = Column(String)
+    raw_path = Column(Text)
+    processed_path = Column(Text)
+    rejected_count = Column(Integer)
+    processed_count = Column(Integer)
+    rejected_samples = Column(JSON)  # salva até 5 exemplos de rejeitados

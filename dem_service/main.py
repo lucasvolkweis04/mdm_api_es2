@@ -1,15 +1,17 @@
-import os
-import subprocess
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
-from database import Base, engine, SessionLocal
-from .models import ETLTransaction, ETLStatus
+from typing import List
+from dem_service import models, schemas, crud, sync
+from dem_service.database import SessionLocal, Base, engine
+from dem_service.sync import run_dynamic_extract
 
-# cria tabela de transações ETL
+# ✅ 1. Cria o app primeiro!
+app = FastAPI(title="DEM ETL Service")
+
+# ✅ 2. Cria as tabelas
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="DEM Service")
-
+# ✅ 3. Dependência do banco
 def get_db():
     db = SessionLocal()
     try:
@@ -17,68 +19,33 @@ def get_db():
     finally:
         db.close()
 
-@app.post("/etl/extract")
-def extract(db: Session = Depends(get_db)):
-    tx = ETLTransaction(type="extract", status=ETLStatus.running, logs="")
-    db.add(tx); db.commit(); db.refresh(tx)
-    try:
-        result = subprocess.run(
-            ["python", "load_countries.py"],
-            cwd=os.path.dirname(__file__),
-            capture_output=True, text=True
-        )
-        tx.status = ETLStatus.success if result.returncode == 0 else ETLStatus.failure
-        tx.logs   = result.stdout if result.returncode == 0 else result.stderr
-    except Exception as e:
-        tx.status = ETLStatus.failure
-        tx.logs   = str(e)
-    db.commit()
-    return {"id": tx.id, "status": tx.status.value, "logs": tx.logs}
+# ✅ 4. Endpoints
+@app.post("/providers", response_model=schemas.Provider)
+def create_provider(p: schemas.ProviderCreate, db: Session = Depends(get_db)):
+    return crud.create_provider(db, p)
 
-@app.post("/etl/transform")
-def transform(db: Session = Depends(get_db)):
-    tx = ETLTransaction(type="transform", status=ETLStatus.running, logs="")
-    db.add(tx); db.commit(); db.refresh(tx)
-    # Aqui você colocaria sua lógica de transformação
-    tx.status = ETLStatus.success
-    tx.logs   = "Transform completed."
-    db.commit()
-    return {"id": tx.id, "status": tx.status.value, "logs": tx.logs}
+@app.get("/providers", response_model=List[schemas.Provider])
+def list_providers(db: Session = Depends(get_db)):
+    return crud.get_providers(db)
 
-@app.post("/etl/load")
-def load(db: Session = Depends(get_db)):
-    tx = ETLTransaction(type="load", status=ETLStatus.running, logs="")
-    db.add(tx); db.commit(); db.refresh(tx)
-    # Se tiver lógica de “load” separada, vai aqui
-    tx.status = ETLStatus.success
-    tx.logs   = "Load completed."
-    db.commit()
-    return {"id": tx.id, "status": tx.status.value, "logs": tx.logs}
+@app.post("/sync")
+def run_sync(db: Session = Depends(get_db)):
+    sync.sync_all_providers(db)
+    return {"detail": "Sync initiated"}
 
-@app.get("/etl/transactions")
-def list_transactions(db: Session = Depends(get_db)):
-    txs = db.query(ETLTransaction).order_by(ETLTransaction.id.desc()).all()
-    return [
-        {
-            "id": t.id,
-            "type": t.type,
-            "status": t.status.value,
-            "created_at": t.created_at,
-            "updated_at": t.updated_at
-        }
-        for t in txs
-    ]
+@app.get("/metadata", response_model=List[schemas.ETLMetadata])
+def get_metadata(db: Session = Depends(get_db)):
+    return crud.get_metadata(db)
 
-@app.get("/etl/transactions/{tx_id}")
-def get_transaction(tx_id: int, db: Session = Depends(get_db)):
-    t = db.query(ETLTransaction).filter(ETLTransaction.id == tx_id).first()
-    if not t:
-        raise HTTPException(404, "Transaction not found")
-    return {
-        "id": t.id,
-        "type": t.type,
-        "status": t.status.value,
-        "logs": t.logs,
-        "created_at": t.created_at,
-        "updated_at": t.updated_at
-    }
+# ✅ 5. Novo endpoint dinâmico
+@app.post("/run-extract")
+def run_extract(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """
+    Executa extração de uma nova fonte externa sem cadastrar permanentemente.
+    """
+    name = payload.get("name")
+    url = payload.get("url")
+    if not name or not url:
+        raise HTTPException(400, "Campos 'name' e 'url' são obrigatórios.")
+    
+    return run_dynamic_extract(name, url, db)

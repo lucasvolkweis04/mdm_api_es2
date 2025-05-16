@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException
 from typing import List
 from sqlalchemy.orm import Session
-from . import models, schemas, crud
-from database import Base, engine, SessionLocal
+from mdm_service import models, schemas, crud
+from mdm_service.database import Base, engine, SessionLocal
 
 Base.metadata.create_all(bind=engine)
 
@@ -22,8 +22,8 @@ def create_country(c: schemas.CountryCreate, db: Session = Depends(get_db)):
     return crud.create_country(db, c)
 
 @app.get("/countries", response_model=List[schemas.Country])
-def read_countries(skip: int=0, limit: int=100,
-                   region: str=None, name: str=None,
+def read_countries(skip: int = 0, limit: int = 100,
+                   region: str = None, name: str = None,
                    db: Session = Depends(get_db)):
     return crud.get_countries(db, skip, limit, region, name)
 
@@ -35,8 +35,7 @@ def read_country(cca3: str, db: Session = Depends(get_db)):
     return obj
 
 @app.put("/countries/{cca3}", response_model=schemas.Country)
-def update_country(cca3: str, c: schemas.CountryUpdate,
-                   db: Session = Depends(get_db)):
+def update_country(cca3: str, c: schemas.CountryUpdate, db: Session = Depends(get_db)):
     obj = crud.update_country(db, cca3, c)
     if not obj:
         raise HTTPException(404, "Country not found")
