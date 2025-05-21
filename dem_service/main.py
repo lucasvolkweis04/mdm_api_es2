@@ -20,9 +20,15 @@ def get_db():
         db.close()
 
 # ✅ 4. Endpoints
+
 @app.post("/providers", response_model=schemas.Provider)
 def create_provider(p: schemas.ProviderCreate, db: Session = Depends(get_db)):
-    return crud.create_provider(db, p)
+    provider = crud.create_provider(db, p)
+
+    # 🔁 Já chama a extração logo após cadastrar o provedor
+    run_dynamic_extract(p.name, p.url, db)
+
+    return provider
 
 @app.get("/providers", response_model=List[schemas.Provider])
 def list_providers(db: Session = Depends(get_db)):
@@ -49,3 +55,6 @@ def run_extract(payload: dict = Body(...), db: Session = Depends(get_db)):
         raise HTTPException(400, "Campos 'name' e 'url' são obrigatórios.")
     
     return run_dynamic_extract(name, url, db)
+
+
+
