@@ -18,7 +18,7 @@
     "population": 26545864,
     "area": 475442.0,
     "capital": [
-      "Yaound\u00e9"
+      "Yaoundé"
     ]
   },
   {
@@ -84,7 +84,7 @@
     "population": 212559409,
     "area": 8515767.0,
     "capital": [
-      "Bras\u00edlia"
+      "Brasília"
     ]
   },
   {
@@ -294,7 +294,7 @@
     "population": 50882884,
     "area": 1141748.0,
     "capital": [
-      "Bogot\u00e1"
+      "Bogotá"
     ]
   },
   {
@@ -448,12 +448,12 @@
     "population": 400,
     "area": 7747.0,
     "capital": [
-      "Port-aux-Fran\u00e7ais"
+      "Port-aux-Français"
     ]
   },
   {
     "cca3": "ALA",
-    "name": "\u00c5land Islands",
+    "name": "Åland Islands",
     "region": "Europe",
     "subregion": "Northern Europe",
     "population": 29458,
@@ -602,7 +602,7 @@
     "population": 2617820,
     "area": 33846.0,
     "capital": [
-      "Chi\u0219in\u0103u"
+      "Chișinău"
     ]
   },
   {
@@ -657,7 +657,7 @@
     "population": 280904,
     "area": 4167.0,
     "capital": [
-      "Papeet\u0113"
+      "Papeetē"
     ]
   },
   {
@@ -822,7 +822,7 @@
     "population": 540542,
     "area": 300.0,
     "capital": [
-      "Mal\u00e9"
+      "Malé"
     ]
   },
   {
@@ -910,7 +910,7 @@
     "population": 48865,
     "area": 1393.0,
     "capital": [
-      "T\u00f3rshavn"
+      "Tórshavn"
     ]
   },
   {
@@ -921,7 +921,7 @@
     "population": 510713,
     "area": 266000.0,
     "capital": [
-      "El Aai\u00fan"
+      "El Aaiún"
     ]
   },
   {
@@ -1084,7 +1084,7 @@
     "population": 168783,
     "area": 549.0,
     "capital": [
-      "Hag\u00e5t\u00f1a"
+      "Hagåtña"
     ]
   },
   {
@@ -1355,7 +1355,7 @@
     "population": 271960,
     "area": 18575.0,
     "capital": [
-      "Noum\u00e9a"
+      "Nouméa"
     ]
   },
   {
@@ -1393,7 +1393,7 @@
   },
   {
     "cca3": "BLM",
-    "name": "Saint Barth\u00e9lemy",
+    "name": "Saint Barthélemy",
     "region": "Americas",
     "subregion": "Caribbean",
     "population": 4255,
@@ -1448,7 +1448,7 @@
   },
   {
     "cca3": "CUW",
-    "name": "Cura\u00e7ao",
+    "name": "Curaçao",
     "region": "Americas",
     "subregion": "Caribbean",
     "population": 155014,
@@ -1652,7 +1652,7 @@
     "population": 7132530,
     "area": 406752.0,
     "capital": [
-      "Asunci\u00f3n"
+      "Asunción"
     ]
   },
   {
@@ -1729,7 +1729,7 @@
     "population": 5094114,
     "area": 51100.0,
     "capital": [
-      "San Jos\u00e9"
+      "San José"
     ]
   },
   {
@@ -2086,7 +2086,7 @@
   },
   {
     "cca3": "REU",
-    "name": "R\u00e9union",
+    "name": "Réunion",
     "region": "Africa",
     "subregion": "Eastern Africa",
     "population": 840974,
@@ -2191,7 +2191,7 @@
     "population": 8278737,
     "area": 56785.0,
     "capital": [
-      "Lom\u00e9"
+      "Lomé"
     ]
   },
   {
@@ -2603,13 +2603,13 @@
   },
   {
     "cca3": "STP",
-    "name": "S\u00e3o Tom\u00e9 and Pr\u00edncipe",
+    "name": "São Tomé and Príncipe",
     "region": "Africa",
     "subregion": "Middle Africa",
     "population": 219161,
     "area": 964.0,
     "capital": [
-      "S\u00e3o Tom\u00e9"
+      "São Tomé"
     ]
   },
   {
