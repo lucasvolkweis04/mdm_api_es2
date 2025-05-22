@@ -18,6 +18,7 @@ os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 def sync_all_providers(db: Session):
     providers = crud.get_providers(db)
+
     for p in providers:
         try:
             resp = requests.get(p.url, timeout=10)
@@ -25,34 +26,49 @@ def sync_all_providers(db: Session):
             data = resp.json()
 
             timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-            raw_path = os.path.join(RAW_DIR, f"{p.name}_{timestamp}.json")
+            filename = f"{p.name}_{timestamp}.json"
+
+            # 1. Salva RAW (dados crus)
+            raw_path = os.path.join(RAW_DIR, filename)
             with open(raw_path, "w") as f:
-                json.dump(data, f)
+                json.dump(data, f, indent=2)
 
-            processed, rejected = clean_countries_full(data)
+            # 2. Transforma os dados
+            processed_data, rejected = transform(data)
 
-            processed_path = os.path.join(PROCESSED_DIR, f"{p.name}_{timestamp}.json")
+            # 3. Salva PROCESSED (dados limpos)
+            processed_path = os.path.join(PROCESSED_DIR, filename)
             with open(processed_path, "w") as f:
-                json.dump(processed, f)
+                json.dump(processed_data, f, indent=2)
 
-            for item in processed:
+            # 4. Envia ao MDM
+            success = 0
+            for item in processed_data:
                 try:
-                    requests.post(f"{MDM_URL}/countries", json=item)
+                    r = requests.post(f"{MDM_URL}/countries", json=item)
+                    if r.status_code == 201:
+                        success += 1
+                    else:
+                        print(f"[!] Rejeitado pelo MDM: {item.get('cca3')} -> {r.text}")
                 except Exception as e:
                     print(f"[!] Erro ao enviar país {item.get('cca3')}: {e}")
 
+            # 5. Registra metadado
             crud.create_metadata(
                 db,
                 provider=p,
                 status="success",
                 raw_path=raw_path,
                 processed_path=processed_path,
-                processed_count=len(processed),
+                processed_count=success,
                 rejected_count=len(rejected),
-                rejected_samples=rejected
+                rejected_samples=rejected[:3]  # amostra de rejeitados
             )
 
+            print(f"[✓] {p.name}: {success} países inseridos, {len(rejected)} rejeitados.")
+
         except Exception as e:
+            print(f"[ERRO] {p.name} falhou: {e}")
             crud.create_metadata(
                 db,
                 provider=p,
@@ -61,31 +77,25 @@ def sync_all_providers(db: Session):
                 processed_path="none",
                 processed_count=0,
                 rejected_count=0,
-                rejected_samples=[str(e)]
+                rejected_samples=[]
             )
-            print(f"Erro com provedor {p.name}: {e}")
 
 
 def transform(data):
     result = []
+    rejected = []
     seen_cca3 = set()
 
     for country in data:
         try:
             cca3 = country.get("cca3")
             name = country.get("name", {}).get("common")
-            if not cca3 or not name:
-                continue
-            if cca3 in seen_cca3:
+
+            if not cca3 or not name or cca3 in seen_cca3:
+                rejected.append(country)
                 continue
 
-            region = country.get("region")
-            subregion = country.get("subregion")
-            population = country.get("population", 0)
-            area = country.get("area", 0.0)
             capital = country.get("capital", [])
-
-            # Padroniza capital como lista
             if isinstance(capital, str):
                 capital = [capital]
             elif capital is None:
@@ -94,20 +104,20 @@ def transform(data):
             result.append({
                 "cca3": cca3,
                 "name": name,
-                "region": region,
-                "subregion": subregion,
-                "population": population,
-                "area": area,
+                "region": country.get("region"),
+                "subregion": country.get("subregion"),
+                "population": country.get("population", 0),
+                "area": country.get("area", 0.0),
                 "capital": capital
             })
 
             seen_cca3.add(cca3)
 
         except Exception as e:
-            print(f"Erro ao processar país: {e}")
-            continue
+            rejected.append(country)
 
-    return result
+    return result, rejected
+
 
 def run_dynamic_extract(name: str, url: str, db):
     try:

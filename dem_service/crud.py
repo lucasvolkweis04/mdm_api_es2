@@ -34,3 +34,11 @@ def create_metadata(db: Session, provider, status, raw_path, processed_path, pro
 def get_metadata(db: Session):
     return db.query(models.ETLMetadata).all()
 
+def get_provider_by_id(db: Session, provider_id: int):
+    return db.query(models.Provider).filter(models.Provider.id == provider_id).first()
+
+def delete_provider(db: Session, provider_id: int):
+    db.query(models.Provider).filter(models.Provider.id == provider_id).delete()
+    db.commit()
+
+

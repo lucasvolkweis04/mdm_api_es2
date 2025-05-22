@@ -56,5 +56,14 @@ def run_extract(payload: dict = Body(...), db: Session = Depends(get_db)):
     
     return run_dynamic_extract(name, url, db)
 
+@app.delete("/providers/{provider_id}", status_code=204)
+def delete_provider(provider_id: int, db: Session = Depends(get_db)):
+    db_provider = crud.get_provider_by_id(db, provider_id)
+    if not db_provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+    crud.delete_provider(db, provider_id)
+    return
+
+
 
 
