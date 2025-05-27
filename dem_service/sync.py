@@ -16,115 +16,6 @@ PROCESSED_DIR = os.path.join(BASE_STORAGE, "processed")
 os.makedirs(RAW_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 
-def sync_all_providers(db: Session):
-    providers = crud.get_providers(db)
-    for p in providers:
-        try:
-            resp = requests.get(p.url, timeout=10)
-            resp.raise_for_status()
-            original_data = json.loads(resp.text)  # JSON bruto (sem manipulação intermediária)
-
-            timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-            raw_path = os.path.join(RAW_DIR, f"{p.name}_{timestamp}_raw.json")
-
-           
-            with open(raw_path, "w", encoding="utf-8") as f:
-                 f.write(resp.text)  # grava o conteúdo cru da API
-
-
-            # Processa os dados
-            processed_data, rejected_data = transform(original_data)
-
-            processed_path = os.path.join(PROCESSED_DIR, f"{p.name}_{timestamp}_processed.json")
-            with open(processed_path, "w", encoding="utf-8") as f:
-                json.dump(processed_data, f, indent=2, ensure_ascii=False)
-
-            inserted = 0
-            for item in processed_data:
-                if not item.get("cca3") or not item.get("name"):
-                    print(f"[!] País com dados faltando: {item}")
-                    continue
-
-                try:
-                    res = requests.post(f"{MDM_URL}/countries", json=item)
-                    res.raise_for_status()
-                    inserted += 1
-                except Exception as e:
-                    print(f"[!] Erro ao enviar país {item.get('cca3')}: {e}")
-
-            crud.create_metadata(
-                db,
-                provider=p,
-                status="success",
-                raw_path=raw_path,
-                processed_path=processed_path,
-                processed_count=len(processed_data),
-                rejected_count=len(rejected_data),
-                rejected_samples=[r.get("cca3") for r in rejected_data[:5]]
-            )
-
-            print(f"[OK] {p.name}: {inserted} países enviados, {len(rejected_data)} rejeitados.")
-
-        except Exception as e:
-            print(f"[ERRO] Falha com provedor {p.name}: {e}")
-            crud.create_metadata(
-                db,
-                provider=p,
-                status="fail",
-                raw_path="none",
-                processed_path="none",
-                processed_count=0,
-                rejected_count=0,
-                rejected_samples=[]
-            )
-
-
-
-def run_dynamic_extract(name: str, url: str, db):
-    try:
-        resp = requests.get(url, timeout=10)
-        resp.raise_for_status()
-        original_data = resp.json()
-
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        raw_path = os.path.join(RAW_DIR, f"{name}_{timestamp}_raw.json")
-        with open(raw_path, "w") as f:
-            json.dump(original_data, f, indent=2)
-
-        processed_data, rejected_data = clean_countries_full(original_data)
-
-        processed_path = os.path.join(PROCESSED_DIR, f"{name}_{timestamp}_processed.json")
-        with open(processed_path, "w") as f:
-            json.dump(processed_data, f, indent=2)
-
-        inserted = 0
-        for item in processed_data:
-            try:
-                res = requests.post(f"{MDM_URL}/countries", json=item)
-                res.raise_for_status()
-                inserted += 1
-            except Exception as e:
-                print(f"[!] Erro ao enviar país {item.get('cca3')}: {e}")
-
-        crud.create_metadata(
-            db,
-            provider=SimpleNamespace(id=0, name=name),
-            status="success",
-            raw_path=raw_path,
-            processed_path=processed_path,
-            processed_count=len(processed_data),
-            rejected_count=len(rejected_data),
-            rejected_samples=[r.get("cca3") for r in rejected_data[:5]]
-        )
-
-        return {
-            "detail": f"{inserted} países enviados, {len(rejected_data)} rejeitados.",
-            "raw_path": raw_path,
-            "processed_path": processed_path
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
 
 def transform(data):
     result = []
@@ -157,8 +48,123 @@ def transform(data):
             })
 
             seen_cca3.add(cca3)
-
         except Exception:
             rejected.append(country)
 
     return result, rejected
+
+
+def sync_all_providers(db: Session):
+    providers = crud.get_providers(db)
+    for p in providers:
+        try:
+            resp = requests.get(p.url, timeout=10)
+            resp.raise_for_status()
+            original_data = json.loads(resp.text)
+
+            timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+            raw_path = os.path.join(RAW_DIR, f"{p.name}_{timestamp}_raw.json")
+            with open(raw_path, "w", encoding="utf-8") as f:
+                f.write(resp.text)
+
+            processed_data, rejected_data = transform(original_data)
+
+            processed_path = os.path.join(PROCESSED_DIR, f"{p.name}_{timestamp}_processed.json")
+            with open(processed_path, "w", encoding="utf-8") as f:
+                json.dump(processed_data, f, indent=2, ensure_ascii=False)
+
+            inserted = 0
+            for item in processed_data:
+                try:
+                    res = requests.post(f"{MDM_URL}/countries", json=item)
+                    if res.status_code == 400:
+                        if "already exists" in res.text:
+                            print(f"[-] País já existe: {item.get('cca3')}")
+                        else:
+                            print(f"[!] 400 ao enviar país {item.get('cca3')} | Resposta: {res.text}")
+                            print("Payload enviado:\n", json.dumps(item, indent=2, ensure_ascii=False))
+                        continue
+                    res.raise_for_status()
+                    inserted += 1
+                except Exception as e:
+                    print(f"[!] Erro ao enviar país {item.get('cca3')}: {e}")
+
+            crud.create_metadata(
+                db,
+                provider=p,
+                status="success",
+                raw_path=raw_path,
+                processed_path=processed_path,
+                processed_count=len(processed_data),
+                rejected_count=len(rejected_data),
+                rejected_samples=[r.get("cca3") for r in rejected_data[:5]]
+            )
+
+            print(f"[OK] {p.name}: {inserted} países enviados, {len(rejected_data)} rejeitados.")
+
+        except Exception as e:
+            print(f"[ERRO] Falha com provedor {p.name}: {e}")
+            crud.create_metadata(
+                db,
+                provider=p,
+                status="fail",
+                raw_path="none",
+                processed_path="none",
+                processed_count=0,
+                rejected_count=0,
+                rejected_samples=[]
+            )
+
+
+def run_dynamic_extract(name: str, url: str, db):
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        original_data = json.loads(resp.text)
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        raw_path = os.path.join(RAW_DIR, f"{name}_{timestamp}_raw.json")
+        with open(raw_path, "w", encoding="utf-8") as f:
+            f.write(resp.text)
+
+        processed_data, rejected_data = transform(original_data)
+
+        processed_path = os.path.join(PROCESSED_DIR, f"{name}_{timestamp}_processed.json")
+        with open(processed_path, "w", encoding="utf-8") as f:
+            json.dump(processed_data, f, indent=2, ensure_ascii=False)
+
+        inserted = 0
+        for item in processed_data:
+            try:
+                res = requests.post(f"{MDM_URL}/countries", json=item)
+                if res.status_code == 400:
+                    if "already exists" in res.text:
+                        print(f"[-] País já existe: {item.get('cca3')}")
+                    else:
+                        print(f"[!] 400 ao enviar país {item.get('cca3')} | Resposta: {res.text}")
+                        print("Payload enviado:\n", json.dumps(item, indent=2, ensure_ascii=False))
+                    continue
+                res.raise_for_status()
+                inserted += 1
+            except Exception as e:
+                print(f"[!] Erro ao enviar país {item.get('cca3')}: {e}")
+
+        crud.create_metadata(
+            db,
+            provider=SimpleNamespace(id=0, name=name),
+            status="success",
+            raw_path=raw_path,
+            processed_path=processed_path,
+            processed_count=len(processed_data),
+            rejected_count=len(rejected_data),
+            rejected_samples=[r.get("cca3") for r in rejected_data[:5]]
+        )
+
+        return {
+            "detail": f"{inserted} países enviados, {len(rejected_data)} rejeitados.",
+            "raw_path": raw_path,
+            "processed_path": processed_path
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

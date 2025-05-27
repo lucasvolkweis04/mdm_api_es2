@@ -47,3 +47,10 @@ def delete_country(cca3: str, db: Session = Depends(get_db)):
     if not obj:
         raise HTTPException(404, "Country not found")
     return {"detail": "Deleted"}
+
+@app.delete("/reset-countries")
+def reset_countries(db: Session = Depends(get_db)):
+    deleted = db.query(models.Country).delete()
+    db.commit()
+    return {"detail": f"{deleted} países apagados"}
+
