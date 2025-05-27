@@ -4,14 +4,13 @@ from typing import List
 from dem_service import models, schemas, crud, sync
 from dem_service.database import SessionLocal, Base, engine
 from dem_service.sync import run_dynamic_extract
+from dem_service.schemas import ProviderCreate
 
-# ✅ 1. Cria o app primeiro!
+
 app = FastAPI(title="DEM ETL Service")
 
-# ✅ 2. Cria as tabelas
 Base.metadata.create_all(bind=engine)
 
-# ✅ 3. Dependência do banco
 def get_db():
     db = SessionLocal()
     try:
@@ -19,16 +18,10 @@ def get_db():
     finally:
         db.close()
 
-# ✅ 4. Endpoints
 
-@app.post("/providers", response_model=schemas.Provider)
-def create_provider(p: schemas.ProviderCreate, db: Session = Depends(get_db)):
-    provider = crud.create_provider(db, p)
-
-    # 🔁 Já chama a extração logo após cadastrar o provedor
-    run_dynamic_extract(p.name, p.url, db)
-
-    return provider
+@app.post("/providers")
+def create_provider(p: ProviderCreate, db: Session = Depends(get_db)):
+    return crud.create_provider(db, p)
 
 @app.get("/providers", response_model=List[schemas.Provider])
 def list_providers(db: Session = Depends(get_db)):
@@ -43,7 +36,6 @@ def run_sync(db: Session = Depends(get_db)):
 def get_metadata(db: Session = Depends(get_db)):
     return crud.get_metadata(db)
 
-# ✅ 5. Novo endpoint dinâmico
 @app.post("/run-extract")
 def run_extract(payload: dict = Body(...), db: Session = Depends(get_db)):
     """

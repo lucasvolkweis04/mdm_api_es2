@@ -56,6 +56,7 @@ def transform(data):
 
 def sync_all_providers(db: Session):
     providers = crud.get_providers(db)
+
     for p in providers:
         try:
             resp = requests.get(p.url, timeout=10)
@@ -74,20 +75,30 @@ def sync_all_providers(db: Session):
                 json.dump(processed_data, f, indent=2, ensure_ascii=False)
 
             inserted = 0
+            already_exists = 0
+            failed = 0
+
             for item in processed_data:
                 try:
                     res = requests.post(f"{MDM_URL}/countries", json=item)
+
                     if res.status_code == 400:
                         if "already exists" in res.text:
                             print(f"[-] País já existe: {item.get('cca3')}")
+                            already_exists += 1
                         else:
                             print(f"[!] 400 ao enviar país {item.get('cca3')} | Resposta: {res.text}")
                             print("Payload enviado:\n", json.dumps(item, indent=2, ensure_ascii=False))
+                            failed += 1
                         continue
+
                     res.raise_for_status()
                     inserted += 1
+
                 except Exception as e:
                     print(f"[!] Erro ao enviar país {item.get('cca3')}: {e}")
+                    print("Payload com erro:\n", json.dumps(item, indent=2, ensure_ascii=False))
+                    failed += 1
 
             crud.create_metadata(
                 db,
@@ -100,7 +111,11 @@ def sync_all_providers(db: Session):
                 rejected_samples=[r.get("cca3") for r in rejected_data[:5]]
             )
 
-            print(f"[OK] {p.name}: {inserted} países enviados, {len(rejected_data)} rejeitados.")
+            print("\n[RESUMO] Provedor:", p.name)
+            print(" - Inseridos com sucesso:", inserted)
+            print(" - Já existiam:", already_exists)
+            print(" - Falharam na inserção:", failed)
+            print(" - Rejeitados na transformação:", len(rejected_data), "\n")
 
         except Exception as e:
             print(f"[ERRO] Falha com provedor {p.name}: {e}")
@@ -114,6 +129,7 @@ def sync_all_providers(db: Session):
                 rejected_count=0,
                 rejected_samples=[]
             )
+
 
 
 def run_dynamic_extract(name: str, url: str, db):
