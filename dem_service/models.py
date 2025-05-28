@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
-from dem_service.database import Base
 from datetime import datetime
+from dem_service.database import Base
+
 
 class Provider(Base):
     __tablename__ = "providers"
@@ -10,6 +11,7 @@ class Provider(Base):
 
 class ETLMetadata(Base):
     __tablename__ = "etl_metadata"
+
     id = Column(Integer, primary_key=True, index=True)
     provider_id = Column(Integer)
     provider_name = Column(String)
@@ -19,4 +21,7 @@ class ETLMetadata(Base):
     processed_path = Column(Text)
     rejected_count = Column(Integer)
     processed_count = Column(Integer)
-    rejected_samples = Column(JSON)  # salva até 5 exemplos de rejeitados
+    rejected_samples = Column(JSON)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

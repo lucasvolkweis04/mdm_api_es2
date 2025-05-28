@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 
 class ProviderBase(BaseModel):
@@ -16,10 +16,13 @@ class Provider(ProviderBase):
 
 class ETLMetadata(BaseModel):
     id: int
-    provider_id: int
-    timestamp: datetime
+    provider_name: str
     status: str
-    raw_path: str
-    processed_path: str
+    processed_count: int
+    rejected_count: int
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
-        orm_mode = True
+     from_attributes = True
+     arbitrary_types_allowed = True

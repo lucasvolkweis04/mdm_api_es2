@@ -5,11 +5,12 @@ from dem_service import models, schemas, crud, sync
 from dem_service.database import SessionLocal, Base, engine
 from dem_service.sync import run_dynamic_extract
 from dem_service.schemas import ProviderCreate
+from dem_service import models
 
 
 app = FastAPI(title="DEM ETL Service")
 
-Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()
@@ -32,7 +33,7 @@ def run_sync(db: Session = Depends(get_db)):
     sync.sync_all_providers(db)
     return {"detail": "Sync initiated"}
 
-@app.get("/metadata", response_model=List[schemas.ETLMetadata])
+@app.get("/transactions", response_model=List[schemas.ETLMetadata])
 def get_metadata(db: Session = Depends(get_db)):
     return crud.get_metadata(db)
 
