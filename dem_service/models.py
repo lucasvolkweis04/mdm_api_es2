@@ -13,15 +13,16 @@ class ETLMetadata(Base):
     __tablename__ = "etl_metadata"
 
     id = Column(Integer, primary_key=True, index=True)
-    provider_id = Column(Integer)
-    provider_name = Column(String)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    status = Column(String)
-    raw_path = Column(Text)
-    processed_path = Column(Text)
-    rejected_count = Column(Integer)
-    processed_count = Column(Integer)
-    rejected_samples = Column(JSON)
+    provider_id = Column(Integer, nullable=True)
+    provider_name = Column(String, nullable=False)
+    status = Column(String, nullable=False)
+    raw_path = Column(Text, nullable=True)
+    processed_path = Column(Text, nullable=True)
+    rejected_count = Column(Integer, nullable=False)
+    processed_count = Column(Integer, nullable=False)
+    rejected_samples = Column(JSON, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    

@@ -15,24 +15,31 @@ def get_provider(db: Session, provider_id: int):
     return db.query(models.Provider).filter(models.Provider.id == provider_id).first()
 
 def create_metadata(db: Session, provider, status, raw_path, processed_path, processed_count, rejected_count, rejected_samples):
-    meta = models.ETLMetadata(
-        provider_id=provider.id,
-        provider_name=provider.name,
-        status=status,
-        raw_path=raw_path,
-        processed_path=processed_path,
-        processed_count=processed_count,
-        rejected_count=rejected_count,
-        rejected_samples=rejected_samples[:5]  # limitar
-    )
-    db.add(meta)
-    db.commit()
-    db.refresh(meta)
-    return meta
+    try:
+        meta = models.ETLMetadata(
+            provider_id=provider.id,
+            provider_name=provider.name,
+            status=status,
+            raw_path=raw_path,
+            processed_path=processed_path,
+            processed_count=processed_count,
+            rejected_count=rejected_count,
+            rejected_samples=rejected_samples[:5] if rejected_samples else []  # Garantir que seja uma lista
+        )
+        db.add(meta)
+        db.commit()
+        db.refresh(meta)
+        return meta
+    except Exception as e:
+        db.rollback()
+        raise ValueError(f"Erro ao criar metadados: {e}")
 
 
-def get_metadata(db: Session):
-    return db.query(models.ETLMetadata).all()
+def get_metadata(db: Session, skip: int = 0, limit: int = 100):
+    try:
+        return db.query(models.ETLMetadata).offset(skip).limit(limit).all()
+    except Exception as e:
+        raise ValueError(f"Erro ao buscar metadados: {e}")
 
 def get_provider_by_id(db: Session, provider_id: int):
     return db.query(models.Provider).filter(models.Provider.id == provider_id).first()

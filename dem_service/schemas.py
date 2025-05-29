@@ -16,13 +16,16 @@ class Provider(ProviderBase):
 
 class ETLMetadata(BaseModel):
     id: int
+    provider_id: Optional[int]
     provider_name: str
     status: str
+    raw_path: Optional[str]
+    processed_path: Optional[str]
     processed_count: int
     rejected_count: int
+    rejected_samples: List[str]
     created_at: datetime
     updated_at: datetime
 
     class Config:
-     from_attributes = True
-     arbitrary_types_allowed = True
+        orm_mode = True

@@ -34,8 +34,11 @@ def run_sync(db: Session = Depends(get_db)):
     return {"detail": "Sync initiated"}
 
 @app.get("/transactions", response_model=List[schemas.ETLMetadata])
-def get_metadata(db: Session = Depends(get_db)):
-    return crud.get_metadata(db)
+def get_transactions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    try:
+        return crud.get_metadata(db, skip=skip, limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar transações: {str(e)}")
 
 @app.post("/run-extract")
 def run_extract(payload: dict = Body(...), db: Session = Depends(get_db)):
