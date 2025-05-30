@@ -7,7 +7,7 @@ class ProviderBase(BaseModel):
     url: str
 
 class ProviderCreate(ProviderBase):
-    pass
+    pass 
 
 class Provider(ProviderBase):
     id: int

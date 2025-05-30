@@ -19,7 +19,7 @@ def create_country(db: Session, data: schemas.CountryCreate):
     db.refresh(obj)
     return obj
 
-def update_country(db: Session, cca3: str, data: schemas.CountryUpdate):
+def update_country(db: Session, cca3: str, data):
     obj = get_country(db, cca3)
     if not obj:
         return None
@@ -28,6 +28,18 @@ def update_country(db: Session, cca3: str, data: schemas.CountryUpdate):
     db.commit()
     db.refresh(obj)
     return obj
+
+def upsert_country(db: Session, data: schemas.CountryCreate):
+    obj = get_country(db, data.cca3)
+    if obj:
+        # Atualiza todos os campos
+        for k, v in data.dict().items():
+            setattr(obj, k, v)
+        db.commit()
+        db.refresh(obj)
+        return obj
+    else:
+        return create_country(db, data)
 
 def delete_country(db: Session, cca3: str):
     obj = get_country(db, cca3)

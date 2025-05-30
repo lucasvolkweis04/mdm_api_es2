@@ -1,8 +1,12 @@
+import os
+import requests
 from fastapi import FastAPI, Depends, HTTPException, Body
 from typing import List
 from sqlalchemy.orm import Session
 from mdm_service import models, schemas, crud
 from mdm_service.database import Base, engine, SessionLocal
+
+DEM_URL = os.getenv("DEM_URL")
 
 Base.metadata.create_all(bind=engine)
 
@@ -16,16 +20,37 @@ def get_db():
         db.close()
 
 @app.post("/countries", response_model=schemas.Country)
-def create_country(c: schemas.CountryCreate, db: Session = Depends(get_db)):
-    if crud.get_country(db, c.cca3):
-        raise HTTPException(400, "Country already exists")
-    return crud.create_country(db, c)
+def upsert_country(c: schemas.CountryCreate, db: Session = Depends(get_db)):
+    return crud.upsert_country(db, c)
 
 @app.get("/countries", response_model=List[schemas.Country])
 def read_countries(skip: int = 0, limit: int = 100,
                    region: str = None, name: str = None,
                    db: Session = Depends(get_db)):
     return crud.get_countries(db, skip, limit, region, name)
+
+@app.post("/sync-from-dem")
+def sync_from_dem(db: Session = Depends(get_db)):
+    if not DEM_URL:
+        raise HTTPException(500, "A variável DEM_URL não está configurada.")
+
+    try:
+        response = requests.get(f"{DEM_URL}/countries", timeout=10)
+        response.raise_for_status()
+        countries = response.json()
+
+        upserts = 0
+        for country in countries:
+            country_data = schemas.CountryCreate(**country)
+            crud.upsert_country(db, country_data)
+            upserts += 1
+
+        return {"detail": f"{upserts} países sincronizados/atualizados com sucesso do DEM para o MDM."}
+
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(500, f"Erro ao se conectar ao serviço DEM: {str(e)}")
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao sincronizar países: {str(e)}")
 
 @app.get("/countries/{cca3}", response_model=schemas.Country)
 def read_country(cca3: str, db: Session = Depends(get_db)):
