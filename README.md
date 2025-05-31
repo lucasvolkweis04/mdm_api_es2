@@ -75,4 +75,4 @@ DEM_URL=http://dem:8002
 
 👨🏻‍💻 Equipe & Licença
 
-Desenvolvido para a disciplina de Engenharia de Software II (PUCRS).
+Desenvolvido por lucas volkweis para a disciplina de Engenharia de Software II (PUCRS).
