@@ -61,7 +61,12 @@ def safe_filename(name):
 
 @app.post("/providers")
 def create_provider(p: schemas.ProviderCreate, db: Session = Depends(get_db)):
+    import time
+    from dem_service.transform import clean_countries_full
+
+    # Cria e salva o provider no banco
     provider = crud.create_provider(db, p)
+
     # 1. Baixar o JSON da URL do provider
     try:
         response = requests.get(provider.url, timeout=10)
@@ -70,31 +75,24 @@ def create_provider(p: schemas.ProviderCreate, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erro ao baixar JSON do provider: {e}")
 
-    # 2. Salvar JSON bruto
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    safe_name = safe_filename(provider.name)
-    raw_path = os.path.join(RAW_DIR, f"{safe_name}_{timestamp}_raw.json")
+    # 2. Gerar nome de arquivo com timestamp
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    raw_filename = f"{provider.name}_{timestamp}.json"
+    processed_filename = f"{provider.name}_{timestamp}.json"
+
+    raw_path = os.path.join(RAW_DIR, raw_filename)
+    processed_path = os.path.join(PROCESSED_DIR, processed_filename)
+
+    # 3. Salvar JSON BRUTO na pasta raw
     with open(raw_path, "w", encoding="utf-8") as f:
-        json.dump(countries_raw, f, ensure_ascii=False, indent=2)
+        f.write(response.text)  # <-- mantém exatamente como veio da API
 
-    # 3. Transformar e salvar JSON processado
-    countries, _ = transform(countries_raw)
-    processed_path = os.path.join(PROCESSED_DIR, f"{safe_name}_{timestamp}_processed.json")
+    # 4. Processar e salvar na pasta processed
+    processed_data, _ = clean_countries_full(countries_raw)
     with open(processed_path, "w", encoding="utf-8") as f:
-        json.dump(countries, f, ensure_ascii=False, indent=2)
+        json.dump(processed_data, f, ensure_ascii=False, indent=2)
 
-    # 4. Inserir/atualizar countries no banco
-    for country in countries:
-        obj = db.query(models.Country).filter(models.Country.cca3 == country["cca3"]).first()
-        if obj:
-            for k, v in country.items():
-                setattr(obj, k, v)
-        else:
-            obj = models.Country(**country)
-            db.add(obj)
-    db.commit()
-    return provider
-
+    return {"message": "Provider criado e dados salvos em raw e processed com sucesso."}
 
 @app.get("/providers", response_model=List[schemas.Provider])
 def list_providers(db: Session = Depends(get_db)):
@@ -117,6 +115,21 @@ def delete_provider(provider_id: int, db: Session = Depends(get_db)):
     crud.delete_provider(db, provider_id)
     return
 
+@app.get("/countries/processed-latest")
+def get_latest_processed_countries():
+    import json
 
+    processed_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "processed"))
 
+    json_files = [f for f in os.listdir(processed_dir) if f.endswith(".json")]
+    if not json_files:
+        raise HTTPException(status_code=404, detail="Nenhum arquivo processado encontrado.")
 
+    latest_file = max(json_files, key=lambda f: os.path.getmtime(os.path.join(processed_dir, f)))
+    latest_path = os.path.join(processed_dir, latest_file)
+
+    try:
+        with open(latest_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao carregar JSON: {e}")

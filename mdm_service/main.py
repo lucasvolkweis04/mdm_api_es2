@@ -1,4 +1,6 @@
 import os
+import json
+from datetime import datetime
 import requests
 from fastapi import FastAPI, Depends, HTTPException, Body
 from typing import List
@@ -31,26 +33,32 @@ def read_countries(skip: int = 0, limit: int = 100,
 
 @app.post("/sync-from-dem")
 def sync_from_dem(db: Session = Depends(get_db)):
-    if not DEM_URL:
-        raise HTTPException(500, "A variável DEM_URL não está configurada.")
+    import requests
+    import os
+
+    dem_url = os.getenv("DEM_URL", "http://localhost:8002")  # ou defina DEM_URL no .env
+    endpoint = f"{dem_url}/countries/processed-latest"
 
     try:
-        response = requests.get(f"{DEM_URL}/countries", timeout=10)
+        response = requests.get(endpoint, timeout=10)
         response.raise_for_status()
         countries = response.json()
-
-        upserts = 0
-        for country in countries:
-            country_data = schemas.CountryCreate(**country)
-            crud.upsert_country(db, country_data)
-            upserts += 1
-
-        return {"detail": f"{upserts} países sincronizados/atualizados com sucesso do DEM para o MDM."}
-
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(500, f"Erro ao se conectar ao serviço DEM: {str(e)}")
     except Exception as e:
-        raise HTTPException(500, f"Erro ao sincronizar países: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar dados do DEM: {e}")
+
+    inserted = []
+    for country in countries:
+        try:
+            schema = schemas.CountryCreate(**country)
+            country_obj = crud.upsert_country(db, schema)
+            inserted.append(country_obj.cca3)
+        except Exception as e:
+            print(f"Erro ao inserir país {country.get('cca3')}: {e}")
+
+    return {
+        "message": f"{len(inserted)} países sincronizados com sucesso via API.",
+        "países": inserted
+    }
 
 @app.get("/countries/{cca3}", response_model=schemas.Country)
 def read_country(cca3: str, db: Session = Depends(get_db)):
