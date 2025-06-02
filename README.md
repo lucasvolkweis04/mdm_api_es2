@@ -1,91 +1,78 @@
-🌍 DEM Service - ETL API
-Bem-vindo ao DEM Service, uma API FastAPI para gerenciar processos ETL (Extract, Transform, Load). Este serviço permite executar e monitorar transações ETL de forma simples e eficiente. 🎉
+Sistema de Gestão de Dados Mestres (MDM + DEM)
 
-Este projeto é composto por dois serviços principais:
-DEM Service: Gerencia processos ETL (Extract, Transform, Load) para manipulação de dados.
-MDM Service: Gerencia informações de países, como nomes, regiões e códigos.
+Este projeto implementa um sistema de Master Data Management composto por dois microsserviços RESTful: DEM (Extração e transformação de dados) e MDM (armazenamento e CRUD de dados tratados).
 
-📋 Funcionalidades
-DEM Service
-Extract: Extração de dados com execução de scripts externos.
-Transform: Transformação de dados com lógica personalizada.
-Load: Carregamento de dados para o destino final.
-Monitoramento: Listagem e consulta de transações ETL.
-MDM Service
-CRUD de Países: Criação, leitura, atualização e exclusão de informações de países.
-Filtros Avançados: Busca por região, nome ou código do país.
+⸻
 
-🛠️ Tecnologias Utilizadas
-Python 🐍
-FastAPI ⚡
-SQLAlchemy 🗄️
-SQLite para persistência de dados.
-Subprocess para execução de scripts externos (DEM Service).
+🧱 Arquitetura
+	•	DEM: Responsável por coletar dados brutos da API externa, nesse caso a restcountries.com, salvar os arquivos em disco e processá-los.
+	•	MDM: Responsável por importar os dados tratados do DEM e disponibilizá-los via CRUD.
+	•	Microsserviços independentes, comunicando-se via HTTP.
 
-🚀 Como Executar o Projeto:
-1. Clone o Repositório 
-git clone https://github.com/lucasvolkweis04/mdm_api_es2
-cd volks
+⸻
 
-2. Instale as Dependências
-Crie um ambiente virtual e instale as dependências:
-python -m venv venv
-source venv/bin/activate  # No Windows: venv\Scripts\activate
-pip install -r requirements.txt
+🚀 Como executar com Docker
 
-3. Execute os Serviços
-DEM Service
-Inicie o servidor do DEM Service:
-uvicorn dem_service.main:app --reload
+1. Clonar o repositório e acessar a pasta do projeto
 
-Acesse a documentação interativa da API em http://127.0.0.1:8000/docs 📚.
+git clone <url>
+cd mdm_api_es2
 
-MDM Service
-Inicie o servidor do MDM Service:
-uvicorn mdm_service.main:app --reload
+2. Criar a estrutura de pastas de armazenamento
 
-Acesse a documentação interativa da API em http://127.0.0.1:8001/docs 📚.
+mkdir -p storage/raw
+mkdir -p storage/processed
 
-📚 Endpoints
-DEM Service:
-POST /etl/extract: Executa o processo de extração de dados.
-POST /etl/transform: Executa o processo de transformação de dados.
-POST /etl/load: Executa o processo de carregamento de dados.
-GET /etl/transactions: Lista todas as transações ETL realizadas.
-GET /etl/transactions/{tx_id}: Consulta os detalhes de uma transação ETL específica.
-MDM Service:
-POST /countries: Cria um novo país.
-GET /countries: Lista países com suporte a filtros (região, nome, etc.).
-GET /countries/{cca3}: Consulta informações de um país específico.
-PUT /countries/{cca3}: Atualiza informações de um país.
-DELETE /countries/{cca3}: Remove um país.
+3. Subir os microsserviços com Docker Compose
 
-📂 Estrutura do Projeto
-volks/
-├── dem_service/
-│   ├── main.py          # Serviço DEM (ETL)
-│   ├── models.py        # Modelos do banco de dados (DEM)
-│   ├── database.py      # Configuração do banco de dados (DEM)
-│   ├── schemas.py       # Schemas para validação de dados (DEM)
-│   ├── crud.py          # Operações CRUD (DEM)
-│   └── load_countries.py # Script de extração de dados
-├── mdm_service/
-│   ├── main.py          # Serviço MDM (CRUD de países)
-│   ├── models.py        # Modelos do banco de dados (MDM)
-│   ├── database.py      # Configuração do banco de dados (MDM)
-│   ├── schemas.py       # Schemas para validação de dados (MDM)
-│   └── crud.py          # Operações CRUD (MDM)
-├── shared/
-│   ├── database.py      # Configuração compartilhada do banco de dados
-│   └── utils.py         # Funções utilitárias (se necessário)
-├── requirements.txt     # Dependências do projeto
-└── README.md            # Documentação do projeto
+docker-compose up --build
 
-🧪 Testes
-Para rodar os testes, utilize:
-pytest
+	•	MDM: http://localhost:8001/docs
+	•	DEM: http://localhost:8002/docs
 
-💡 Autor
-Desenvolvido por Lucas Volkweis. 😊
+⸻
 
-Se tiver dúvidas ou sugestões, sinta-se à vontade para entrar em contato no email: lucas.volkweis@edu.pucrs.br 📬
+🧪 Fluxo ETL
+	1.	POST /providers (DEM): faz download e salva os dados da API externa.
+	2.	GET /countries/processed-latest (DEM): retorna os dados tratados.
+	3.	POST /sync-from-dem (MDM): consome os dados da API do DEM e armazena no banco.
+
+⸻
+
+📂 Estrutura
+
+.
+├── dem_service/          # Microsserviço DEM
+├── mdm_service/          # Microsserviço MDM
+├── storage/
+│   ├── raw/              # JSON bruto
+│   └── processed/        # JSON processado
+├── docker-compose.yml
+├── requirements.txt
+└── README.md
+
+
+⸻
+
+📌 Variáveis de Ambiente
+
+No MDM:
+
+DEM_URL=http://dem:8002
+
+
+⸻
+
+✅ Requisitos atendidos
+	•	Arquitetura de microsserviços RESTful
+	•	Processamento ETL completo
+	•	CRUD completo no MDM
+	•	Armazenamento de arquivos em disco (raw/processed)
+	•	Comunicação HTTP entre microsserviços
+	•	Compatível com execução local ou Docker
+
+⸻
+
+👨🏻‍💻 Equipe & Licença
+
+Desenvolvido por lucas volkweis para a disciplina de Engenharia de Software II (PUCRS).
