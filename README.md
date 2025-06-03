@@ -1,35 +1,33 @@
-Sistema de Gestão de Dados Mestres (MDM + DEM)
+🌎 Sistema de Gestão de Dados Mestres (MDM + DEM)
 
 Este projeto implementa um sistema de Master Data Management composto por dois microsserviços RESTful: DEM (Extração e transformação de dados) e MDM (armazenamento e CRUD de dados tratados).
 
 ⸻
 
 🧱 Arquitetura
-	•	DEM: Responsável por coletar dados brutos da API externa, nesse caso a restcountries.com, salvar os arquivos em disco e processá-los.
+	•	DEM: Responsável por coletar dados brutos da API externa, nesse caso a restcountries.com, salvar os arquivos em disco e processá-los, depois envia ao banco próprio;
 	•	MDM: Responsável por importar os dados tratados do DEM e disponibilizá-los via CRUD.
 	•	Microsserviços independentes, comunicando-se via HTTP.
 
 ⸻
 
-🚀 Como executar com Docker
+🚀 Como executar o programa:
 
 1. Clonar o repositório e acessar a pasta do projeto
 
-git clone <url>
+git clone <https://github.com/lucasvolkweis04/mdm_api_es2.git>
 cd mdm_api_es2
 
-2. Criar a estrutura de pastas de armazenamento
 
-mkdir -p storage/raw
-mkdir -p storage/processed
+2. Crie um ambiente virtual e instale as dependências:
 
-3. Subir os microsserviços com Docker Compose
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 
-docker-compose up --build
-
-	•	MDM: http://localhost:8001/docs
-	•	DEM: http://localhost:8002/docs
-
+3. Inicie os serviços:
+uvicorn mdm_service.main:app --reload --port 8001
+uvicorn dem_service.main:app --reload --port 8002
 ⸻
 
 🧪 Fluxo ETL
@@ -54,25 +52,14 @@ docker-compose up --build
 
 ⸻
 
-📌 Variáveis de Ambiente
-
-No MDM:
-
-DEM_URL=http://dem:8002
-
-
-⸻
-
 ✅ Requisitos atendidos
 	•	Arquitetura de microsserviços RESTful
 	•	Processamento ETL completo
 	•	CRUD completo no MDM
-	•	Armazenamento de arquivos em disco (raw/processed)
+	•	Armazenamento em storage(raw/processed)
 	•	Comunicação HTTP entre microsserviços
 	•	Compatível com execução local ou Docker
 
 ⸻
 
-👨🏻‍💻 Equipe & Licença
-
-Desenvolvido por lucas volkweis para a disciplina de Engenharia de Software II (PUCRS).
+👨🏻‍💻 Desenvolvido por Lucas Volkweis para a disciplina de Engenharia de Software II (PUCRS).

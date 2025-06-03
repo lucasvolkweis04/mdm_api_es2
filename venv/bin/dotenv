@@ -1,4 +1,4 @@
-#!/Users/dudueboli/Documents/volks/venv/bin/python3.13
+#!/Users/lucasvolkweis/mdm_api_es2/venv/bin/python3.13
 # -*- coding: utf-8 -*-
 import re
 import sys
