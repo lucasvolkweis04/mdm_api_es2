@@ -28,6 +28,10 @@ pip install -r requirements.txt
 3. Inicie os serviços:
 uvicorn mdm_service.main:app --reload --port 8001
 uvicorn dem_service.main:app --reload --port 8002
+
+4. No navegador acesse:
+http://localhost:8001/docs#/  - MDM
+http://localhost:8002/docs#/  - DEM
 ⸻
 
 🧪 Fluxo ETL
