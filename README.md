@@ -1,5 +1,6 @@
-- Sistema de Gestão de Dados Mestres (MDM + DEM)
-- O Problema e a Solução
+🌎 Sistema de Gestão de Dados Mestres (MDM + DEM)
+
+🎯 O Problema e a Solução
 Sistemas corporativos frequentemente lidam com dados inconsistentes, duplicados ou desatualizados espalhados por diversas aplicações. O Master Data Management (MDM) resolve isso criando uma "fonte única de verdade" (Golden Record) para os dados críticos de uma organização.
 
 Neste projeto, o desafio é consumir dados sobre países de uma fonte externa (API restcountries.com), tratar essas informações e centralizá-las de forma confiável. Para garantir a qualidade e a separação de responsabilidades, a solução foi dividida em dois microsserviços: o DEM lida com o "trabalho sujo" de extração e limpeza (ETL), garantindo que apenas dados validados e padronizados cheguem ao MDM, que por sua vez os disponibiliza para consumo seguro por outras aplicações.
